@@ -10,7 +10,7 @@ const postSchema = new Schema({
   address: { type: String, required: true },
   species: {
     type: String,
-    enum: ["Chó", "Mèo", "Chuột Hamster", "Khác"],
+    enum: ["Chó", "Mèo", "Gà", "Chim", "Chuột Hamster", "Khác"],
     required: true,
   },
   genre: { type: String, required: true },

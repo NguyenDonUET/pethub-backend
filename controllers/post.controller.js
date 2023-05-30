@@ -293,6 +293,7 @@ const postReview = async (req, res, next) => {
     }
     var resString1 = "";
     var res1 = review.message.split(" ");
+    var flag = false;
     for (let i = 0; i < badword.length; i++) {
       for (let k = 0; k < res1.length; k++) {
         let resString = "";
@@ -300,17 +301,43 @@ const postReview = async (req, res, next) => {
           resString += "*";
         }
         let temp = res1[k].toLowerCase();
-        temp == badword[i] ? (res1[k] = resString) : (temp = "");
+        temp == badword[i] ? (flag = true) : (temp = "");
       }
     }
-    for (let j = 0; j < res1.length; j++) {
-      resString1 += res1[j];
-      resString1 += " ";
+    // for (let j = 0; j < res1.length; j++) {
+    //   resString1 += res1[j];
+    //   resString1 += ' '
+    // }
+    if (flag) {
+      review.isBad = true;
+      post.reviews.push(review);
+      await post.save();
+    } else {
+      var spawn = require("child_process").spawn;
+      var process = spawn("python", ["./spam.py", review.message.toString()]);
+      process.stdout.on("data", async function (data) {
+        console.log(data);
+        console.log(data.toString());
+        if (data.toString().includes("isBad")) {
+          console.log("isBad");
+          review.isBad = true;
+        } else {
+          console.log("isNotBad");
+          review.isBad = false;
+        }
+        post.reviews.push(review);
+        await post.save();
+        res.status(201).json({ message: "Review Successfully" });
+      });
+      process.on("close", (code) => {
+        console.log("code", code);
+      });
     }
-    review.message = resString1;
-    post.reviews.push(review);
-    await post.save();
-    res.status(201).json({ message: "Review Successfully" });
+    // review.message = resString1;
+
+    // post.reviews.push(review);
+    // await post.save();
+    // res.status(201).json({ message: 'Review Successfully' });
   } catch (error) {
     console.log(error);
     res.status(404).json({ message: "Cannot find post" });
@@ -334,13 +361,13 @@ const getReviews = async (req, res, next) => {
           id: review._id,
           rating: review.rating,
           message: review.message,
-          isBad: review.isBad,
           createdAt: review._id.getTimestamp(),
           creator: {
             username: review.creator.username,
             avatar: review.creator.avatar,
             id: review.creator._id,
           },
+          isBad: review.isBad,
         };
       }),
     });
